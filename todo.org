@@ -1,0 +1,8 @@
+* Inbox
+** [X] TODO Reference GPG Spec
+CLOSED: [2020-10-03 Sat 16:42]
+https://github.com/gpg/gnupg/blob/master/doc/DETAILS#format-of-the-status-fd-output
+** [ ] TODO Support custom CA certs
+** [X] TODO Support custom SNI header
+CLOSED: [2020-10-03 Sat 16:42]
+** [ ] TODO Move to Nix flakes

@@ -1,0 +1,27 @@
+cargo-features = ["strip"]
+
+[package]
+name = "vaultsign"
+description = "Sign/verify git commits using HashiCorp Vault."
+version = "1.0.0"
+authors = ["Martin Baillie <martin@baillie.email>"]
+edition = "2018"
+
+[dependencies]
+anyhow = "1.0.32"
+async-trait = "0.1.40"
+base64 = "0.12.3"
+bytes = "0.5.6"
+clap = "2.33.3"
+derive_more = "0.99.10"
+dirs = "3.0.1"
+hyper = "0.13.8"
+hyper-openssl = "0.8.0"
+openssl = "0.10.30"
+openssl-probe = "0.1.2"
+serde = { version = "1.0.116", features = ["derive"] }
+serde_json = "1.0.57"
+tokio = { version = "0.2.2", features = ["macros"] }
+
+[profile.release]
+strip = "symbols"

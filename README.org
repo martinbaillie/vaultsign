@@ -1,0 +1,188 @@
+* vaultsign [[https://github.com/martinbaillie/vaultsign/actions?query=workflow%3Abuild][https://github.com/martinbaillie/vaultsign/workflows/build/badge.svg]] :TOC_2:noexport:
+- [[#about][About]]
+  - [[#how][How?]]
+  - [[#why][Why?]]
+- [[#usage][Usage]]
+  - [[#example][Example]]
+- [[#install][Install]]
+  - [[#download][Download]]
+  - [[#build][Build]]
+- [[#github-verification][GitHub Verification]]
+
+* About
+=vaultsign= is a small CLI that can be used to sign (and verify) =git= commits
+and tags using HashiCorp's [[https://www.vaultproject.io/][Vault]].
+
+It works both with the out-of-the-box [[https://www.vaultproject.io/docs/secrets/transit][transit backend]] and LeSuisse's [[https://github.com/LeSuisse/vault-gpg-plugin][GPG plugin]].
+#+BEGIN_QUOTE
+NOTE: You will want the latter for those GitHub :heavy_check_mark: verified [[#github-verification][feels]].
+#+END_QUOTE
+
+** How?
+=vaultsign= implements just enough of the GPG CLI interface and status protocol
+to proxy the =git= originating sign and verify requests onwards to your
+specified Vault backend endpoint.
+
+** Why?
+Vault's signature related backends are useful for realising code provenance in
+regulated and other high security environments.
+
+You might, for example, build and sign software binaries using CI and Vault
+infrastructure you control, then store them in an artefact repository (such as
+GitHub's Releases), and later verify those binaries again with Vault during
+deployment to cryptographically prove they were built on your terms without
+tampering.
+
+This works well for deployable artefacts like binaries but gets a little more
+awkward when some of related deployment collateral is say, IaC files (such as
+Terraform) living on a VCS branch or tag.
+
+One option here is to tarball up this deployment collateral and
+sign/store/verify that.
+
+Another is to make use of =vaultsign=.
+
+With it, the CI process can sign a =git= commit or, more commonly, a release tag
+at the same time as it signs the just-cut binaries. Subsequently, they can all
+be verified together during a deployment.
+
+Doing all of this in your CI/CD infrastructure with Vault removes much of the
+need to deal with individual employee GPG keys or X.509 certificates (for
+S/Mime) to achieve code provenance at the VCS level.
+
+* Usage
+There is a built-in help that you may find useful:
+#+BEGIN_SRC shell :exports both :results verbatim replace
+vaultsign --help
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+vaultsign 1.0.0
+Martin Baillie <martin@baillie.email>
+Sign/verify git commits using HashiCorp Vault.
+
+USAGE:
+    vaultsign [FLAGS] [OPTIONS] <--sign|--verify> [FILE]...
+
+FLAGS:
+    -a, --armor          Create ASCII armored output
+    -b, --detach-sign    Make a detached signature
+    -h, --help           Prints help information
+    -s, --sign           Make a signature
+    -V, --version        Prints version information
+    -v, --verify         Verify a signature
+
+OPTIONS:
+        --keyid-format <keyid_format>           Select how to display key IDs [possible values: long]
+    -u, --local-user <local_user>               USER-ID to sign or decrypt
+        --status-fd <status_fd>                 Write special status strings to the file descriptor n. [possible values:
+                                                1, 2]
+        --vault_addr <vault_addr>               Vault address to use for sign and verify actions [env: VAULT_ADDR]
+                                                [default: http://127.0.0.1:8200]
+        --vault_sign_path <vault_sig_path>      The Vault path to use for sign actions [env: VAULT_SIGN_PATH]  [default:
+                                                transit/sign/test/sha2-256]
+        --vault_verify_path <vault_ver_path>    The Vault path to use for verify actions [env: VAULT_VERIFY_PATH]
+                                                [default: transit/verify/test]
+
+ARGS:
+    <FILE>...
+
+NOTE:
+    The vaultsign CLI implements just enough of the full GPG CLI interface
+    for happy-path git sign and verify operations to function correctly.
+#+end_example
+
+Mostly, though, you just need to tell your =git= CLI to use =vaultsign=:
+#+BEGIN_SRC shell
+git config --local gpg.program /path/to/vaultsign
+#+END_SRC
+
+And set some Vault related environment variables:
+#+BEGIN_SRC shell
+# The location of your Vault. Mandatory always.
+export VAULT_ADDR=https://vault.your.corp:8200
+
+# The signing backend endpoint (transit or gpg) and optionally hashing function
+# to use. Mandatory for signing.
+export VAULT_SIGN_PATH=transit/sign/test/sha2-256
+export VAULT_SIGN_PATH=gpg/sign/test/sha2-256
+
+# The verify backend endpoint (transit or gpg). Mandatory for verifying.
+export VAULT_VERIFY_PATH=transit/verify/test
+export VAULT_VERIFY_PATH=gpg/verify/test
+
+# The SNI to present during the TLS handshake (if different from the Vault HTTP
+# host name). Useful when your Vault is exposed through an AWS private link for
+# example. Optional.
+export VAULT_TLS_SERVER_NAME=hostname.to.use.for.sni.com
+#+END_SRC
+
+#+BEGIN_QUOTE
+NOTE: =vaultsign= will discover an existing Vault token from either the
+environment or the home directory using HashiCorp's established naming
+(=VAULT_TOKEN=) and path (=~/.vault-token=). The environment takes precedence
+here.
+#+END_QUOTE
+
+** Example
+#+BEGIN_SRC shell
+# Login to your vault.
+export VAULT_ADDR=http://127.0.0.1:8200
+vault login
+
+# Tell git to use vaultsign.
+git config --local gpg.program /path/to/vaultsign
+
+# Sign a commit and tag.
+export VAULT_SIGN_PATH=transit/sign/test/sha2-256
+git commit -m "test signed commit" -S
+git tag -m "test signed tag" -s test
+
+# Verify the same commit and tag.
+export VAULT_VERIFY_PATH=transit/verify/test
+git verify-commit HEAD
+git log -1 --show-signature
+git verify-tag test
+#+END_SRC
+
+* Install
+You can either download a signed static binary release or compile from source for your target
+architecture.
+** Download
+Always download and verify the latest stable release from the GitHub [[https://github.com/martinbaillie/vaultsign/releases/][releases]]
+section.
+*** Verify
+#+BEGIN_SRC shell
+# Import my key.
+curl -sS https://github.com/martinbaillie.gpg | gpg --import -
+
+# Verify the authenticity.
+gpg --verify SHA256SUMS.sig SHA256SUMS
+
+# Verify the integrity.
+shasum -a 256 -c SHA256SUMS
+#+END_SRC
+** Build
+If you are a [[https://nixos.org/][Nix]] user then you can take advantage of the [[shell.nix][shell.nix]] to provide
+a functional development environment for compilation and tests.
+#+BEGIN_SRC shell
+nix-shell --pure --run "make release"
+#+END_SRC
+
+Otherwise, any sufficiently modern Rust toolchain should be able to compile =vaultsign=.
+
+#+BEGIN_QUOTE
+NOTE: =vaultsign= links against your system's native OpenSSL distribution. Ensure you have the dependencies listed in [[shell.nix][shell.nix]].
+#+END_QUOTE
+* GitHub Verification
+If you want that coveted GitHub green verified tick for your Vault-signed
+commits and tags then you must use LeSuisse's [[https://github.com/LeSuisse/vault-gpg-plugin][GPG plugin]] in Vault. GitHub does
+not know how to verify Vault transit backend signatures.
+
+With that done, you just have to ensure the GPG key email and VCS author email
+match, i.e.:
+- GPG Private key generated/imported in Vault has a real name and email (see
+  [[https://github.com/LeSuisse/vault-gpg-plugin/blob/master/docs/http-api.md#create-key][here]]).
+- GPG Public key is added to the GitHub user doing the VCS operation, with those
+  same details.

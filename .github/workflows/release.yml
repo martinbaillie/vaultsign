@@ -1,0 +1,83 @@
+on:
+  push:
+    # tags:
+    #   - "v*"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+        - x86_64-unknown-linux-musl
+        - x86_64-apple-darwin
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macOS-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target ${{ matrix.target }}
+      - name: Upload
+        uses: actions/upload-artifact@v2
+        with:
+          name: vaultsign-${{ matrix.os }}-amd64
+          path: target/${{ matrix.target }}/release/vaultsign
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download
+        uses: actions/download-artifact@v2
+      - name: Layout
+        run: |
+          mv vaultsign-ubuntu-latest-amd64/vaultsign ./vaultsign-linux-amd64
+          mv vaultsign-macos-latest-amd64/vaultsign ./vaultsign-darwin-amd64
+          rm -rf vaultsign-ubuntu-latest-amd64 vaultsign-macos-latest-amd64
+      - name: Checksum
+        run: make SHA256SUMS
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+      - name: Release SHA256SUMS
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: SHA256SUMS
+          asset_name: SHA256SUMS
+          asset_content_type: text/plain
+      - name: Release vaultsign-linux-amd64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: vaultsign-linux-amd64
+          asset_path: vaultsign-linux-amd64
+          asset_content_type: application/octet-stream
+      - name: Release vaultsign-macos-amd64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: vaultsign-darwin-amd64
+          asset_name: vaultsign-darwin-amd64
+          asset_content_type: application/octet-stream
