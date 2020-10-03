@@ -1,3 +1,5 @@
+name: release
+
 on:
   push:
     # tags:
@@ -19,11 +21,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
       - uses: actions-rs/cargo@v1
         with:
+          toolchain: nightly
           use-cross: true
           command: build
           args: --release --target ${{ matrix.target }}

@@ -19,11 +19,11 @@ GPG			=$(shell command -v gpg || (apt-get -qq update &>/dev/null && \
 
 target/debug/$(PROJECT): ; cargo build
 target/release/$(PROJECT): ; cargo build --release
-
+clean: ; cargo clean
 build: target/debug/$(PROJECT)
 release: target/release/$(PROJECT)
 acceptance: target/release/$(PROJECT); ./hack/acceptance_test.bash
-.PHONY: build release acceptance
+.PHONY: clean build release acceptance
 
 tag:
 	echo >&2 "==> Tagging"

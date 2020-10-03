@@ -1,4 +1,4 @@
-* vaultsign [[https://github.com/martinbaillie/vaultsign/actions?query=workflow%3Abuild][https://github.com/martinbaillie/vaultsign/workflows/build/badge.svg]] :TOC_2:noexport:
+* vaultsign :TOC_2:noexport:
 - [[#about][About]]
   - [[#how][How?]]
   - [[#why][Why?]]

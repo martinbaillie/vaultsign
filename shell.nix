@@ -4,7 +4,11 @@ let
   pkgs = import sources.nixpkgs { };
 in with pkgs;
 mkShell {
+  shellHook = ''
+    export NIX_BUILD_SHELL=${pkgs.bashInteractive}/bin/bash
+  '';
   buildInputs = [
+    bashInteractive
     cacert
     curl
     git
@@ -14,17 +18,8 @@ mkShell {
     unzip
     vault
     which
-    pkgsStatic.openssl
-    pkgsStatic.zlib
+    openssl
   ] ++ stdenv.lib.optionals stdenv.isDarwin
     [ darwin.apple_sdk.frameworks.Security ];
   RUST_BACKTRACE = 1;
-
-  PKG_CONFIG_ALLOW_CROSS = true;
-  PKG_CONFIG_ALL_STATIC = true;
-
-  OPENSSL_DEV = pkgsStatic.openssl.dev;
-  OPENSSL_STATIC = 1;
-  OPENSSL_DIR = pkgsStatic.openssl.dev;
-  OPENSSL_LIB_DIR = "${pkgsStatic.openssl.dev.out}/lib";
 }
