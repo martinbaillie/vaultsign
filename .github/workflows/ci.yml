@@ -34,4 +34,4 @@ jobs:
         # https://github.com/NixOS/nixpkgs/issues/71625
         run: nix-env -iA bashInteractive -f '<nixpkgs>'
       - name: Acceptance Test
-        run: nix-shell --pure --run "make acceptance"
+        run: nix-shell --pure --run "make clean acceptance"

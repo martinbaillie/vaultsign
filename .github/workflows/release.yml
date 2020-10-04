@@ -17,14 +17,30 @@ jobs:
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
           - target: x86_64-apple-darwin
-            os: macOS-latest
+            os: macos-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/cargo@v1
+      - name: Build Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          docker run --rm -t \
+          -v $HOME/.cargo/registry/:/root/.cargo/registry \
+          -v "$(pwd)":/volume \
+          clux/muslrust:nightly \
+          cargo build --release --target ${{ matrix.target }}
+      - name: Prepare macOS
+        if: matrix.os == 'macos-latest'
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
-          use-cross: true
+          target: ${{ matrix.target }}
+          override: true
+      - name: Build macOS
+        if: matrix.os == 'macos-latest'
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: nightly
           command: build
           args: --release --target ${{ matrix.target }}
       - name: Upload
@@ -32,6 +48,7 @@ jobs:
         with:
           name: vaultsign-${{ matrix.os }}-amd64
           path: target/${{ matrix.target }}/release/vaultsign
+          if-no-files-found: error
 
   release:
     needs: build
