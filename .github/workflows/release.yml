@@ -3,7 +3,7 @@ name: release
 on:
   push:
     # tags:
-    #   - "v*"
+      # - "v*"
 
 jobs:
   build:
@@ -16,37 +16,24 @@ jobs:
         include:
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
+            uname: linux
           - target: x86_64-apple-darwin
-            os: macos-latest
+            os: ubuntu-latest
+            uname: darwin
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-      - name: Build Linux
-        if: matrix.os == 'ubuntu-latest'
+      - name: Build
         run: |
           docker run --rm -t \
           -v $HOME/.cargo/registry/:/root/.cargo/registry \
-          -v "$(pwd)":/volume \
-          clux/muslrust:nightly \
-          cargo build --release --target ${{ matrix.target }}
-      - name: Prepare macOS
-        if: matrix.os == 'macos-latest'
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          target: ${{ matrix.target }}
-          override: true
-      - name: Build macOS
-        if: matrix.os == 'macos-latest'
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: build
-          args: --release --target ${{ matrix.target }}
+          -v "$(pwd)":/root/src \
+          joseluisq/rust-linux-darwin-builder:1.46.0 \
+          sh -c 'cargo build --release --target ${{ matrix.target }}'
       - name: Upload
         uses: actions/upload-artifact@v2
         with:
-          name: vaultsign-${{ matrix.os }}-amd64
+          name: vaultsign-${{ matrix.uname }}-amd64
           path: target/${{ matrix.target }}/release/vaultsign
           if-no-files-found: error
 
@@ -54,13 +41,14 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - name: Download
         uses: actions/download-artifact@v2
       - name: Layout
         run: |
-          mv vaultsign-ubuntu-latest-amd64/vaultsign ./vaultsign-linux-amd64
-          mv vaultsign-macos-latest-amd64/vaultsign ./vaultsign-darwin-amd64
-          rm -rf vaultsign-ubuntu-latest-amd64 vaultsign-macos-latest-amd64
+          mv vaultsign-linux-amd64/vaultsign ./vaultsign-linux-amd64
+          mv vaultsign-darwin-amd64/vaultsign ./vaultsign-darwin-amd64
+          rm -rf vaultsign-linux-amd64 vaultsign-darwin-amd64
       - name: Checksum
         run: make SHA256SUMS
       - name: Create Release

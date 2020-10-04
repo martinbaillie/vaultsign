@@ -1,4 +1,4 @@
-cargo-features = ["strip"]
+# cargo-features = ["strip"]
 
 [package]
 name = "vaultsign"
@@ -23,5 +23,5 @@ serde = { version = "1.0.116", features = ["derive"] }
 serde_json = "1.0.57"
 tokio = { version = "0.2.2", features = ["macros"] }
 
-[profile.release]
-strip = "symbols"
+# [profile.release]
+# strip = "symbols"
