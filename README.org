@@ -173,7 +173,11 @@ nix-shell --pure --run "make release"
 Otherwise, any sufficiently modern Rust toolchain should be able to compile =vaultsign=.
 
 #+BEGIN_QUOTE
-NOTE: =vaultsign= links against your system's native OpenSSL distribution. Ensure you have the dependencies listed in [[shell.nix][shell.nix]].
+NOTE: regarding OpenSSL.
+
+If you are compiling from source, =vaultsign= links against your system's native OpenSSL distribution. Ensure you have the dependencies listed in [[shell.nix][shell.nix]].
+
+If you are using the pre-compiled Darwin version from the [[https://github.com/martinbaillie/vaultsign/releases/][releases]] section then it is not static so ensure you have OpenSSL version 1.1 installed.
 #+END_QUOTE
 * GitHub Verification
 If you want that coveted GitHub green verified tick for your Vault-signed
