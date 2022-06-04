@@ -9,7 +9,7 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0.32"
-async-trait = "0.1.40"
+async-trait = "0.1.56"
 base64 = "0.12.3"
 bytes = "0.5.6"
 clap = "2.33.3"
